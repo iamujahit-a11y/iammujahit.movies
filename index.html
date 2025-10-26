@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Movie Library</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Poppins',sans-serif;background:#0f0f0f;color:#fff;}
+header{padding:20px;text-align:center;background:#1c1c1c;box-shadow:0 2px 10px rgba(0,0,0,0.5);}
+header h1{margin:0;font-size:2.2em;color:#e50914;letter-spacing:1px;}
+#loginForm,#uploadForm{margin:20px auto;text-align:center;max-width:400px;background:#1a1a1a;padding:20px;border-radius:12px;box-shadow:0 4px 10px rgba(0,0,0,0.5);}
+#loginForm input,#uploadForm input,#uploadForm select{margin:5px 0;padding:10px;border-radius:8px;border:none;width:90%;max-width:300px;}
+#loginForm button,#uploadForm button{margin:10px 5px;padding:10px 20px;border-radius:25px;border:none;background:#e50914;color:#fff;font-weight:600;cursor:pointer;transition:background .3s;}
+#loginForm button:hover,#uploadForm button:hover{background:#f6121d;}
+#posterPreview{width:150px;height:225px;margin:10px 0;border-radius:8px;object-fit:cover;border:2px solid #e50914;}
+.featured-carousel{position:relative;width:100%;height:50vh;overflow:hidden;margin-bottom:20px;}
+.featured-slide{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;transition:opacity 1s;}
+.featured-slide.active{opacity:1;z-index:1;}
+.featured-slide img{width:100%;height:100%;object-fit:cover;}
+.carousel-btn{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.5);border:none;color:#fff;font-size:2em;padding:10px;cursor:pointer;border-radius:50%;z-index:2;}
+.prev-btn{left:10px;} .next-btn{right:10px;}
+.category{margin:20px;}
+.category h2{margin:0 0 10px 10px;font-size:1.5em;color:#fff}
+.slider{display:flex;overflow-x:auto;padding-left:10px;scroll-behavior:smooth}
+.slider::-webkit-scrollbar{display:none}
+.movie-card{min-width:180px;margin-right:10px;border-radius:12px;overflow:hidden;transition:transform .3s;cursor:pointer;background:#1a1a1a;flex-shrink:0;position:relative;padding:5px;}
+.movie-card:hover{transform:scale(1.1);}
+.movie-card img.poster{width:100%;height:270px;object-fit:cover;display:block;}
+.movie-card video.previewVideo{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .3s;pointer-events:none;}
+.movie-card h3{text-align:center;margin:5px 0;font-size:1em;}
+.movie-card a{display:block;text-align:center;margin:5px 10px 10px 10px;padding:5px;background:#e50914;color:#fff;text-decoration:none;border-radius:25px;font-size:.85em;}
+.movie-card a:hover{background:#f6121d;}
+.movie-card button{margin:5px 2px;padding:5px 10px;border:none;border-radius:8px;cursor:pointer;background:#444;color:#fff;}
+.movie-card button:hover{background:#e50914;}
+.movie-card input[type="checkbox"]{position:absolute;top:10px;left:10px;width:20px;height:20px;cursor:pointer;}
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:1000;justify-content:center;align-items:center;}
+.modal-content{position:relative;width:90%;max-width:900px;background:#222;border-radius:10px;overflow:hidden;}
+.modal video{width:100%;height:50vh;object-fit:cover;}
+.modal-details{padding:20px;color:#fff;}
+.modal-details h2{margin-top:0;}
+.close-btn{position:absolute;top:10px;right:10px;font-size:2em;color:#fff;background:transparent;border:none;cursor:pointer;}
+@media(max-width:768px){.movie-card{min-width:140px}.featured-slide img{height:200px}.search-bar input{width:90%}}
+</style>
+</head>
+<body>
+
+<header>
+<h1>Owner Movie Library</h1>
+</header>
+
+<div id="loginForm">
+<h3>Owner Login</h3>
+<input type="password" id="ownerPassword" placeholder="Enter Password"><br>
+<button onclick="checkLogin()">Login</button>
+</div>
+
+<div class="search-bar">
+<input type="text" id="searchInput" placeholder="Search movies..." onkeyup="displayCategories()">
+</div>
+
+<div id="uploadForm" style="display:none;">
+<h3>Add / Upload Movie</h3>
+<input type="text" id="movieTitle" placeholder="Movie Title"><br>
+<input type="text" id="moviePoster" placeholder="Poster URL" oninput="updatePosterPreview()"><br>
+<img id="posterPreview" src="https://via.placeholder.com/200x300?text=Preview"><br>
+<input type="text" id="movieURL" placeholder="Movie URL"><br>
+<select id="movieCategory">
+<option value="Action">Action</option>
+<option value="Animation">Animation</option>
+<option value="Sci-Fi">Sci-Fi</option>
+<option value="Drama">Drama</option>
+<option value="Comedy">Comedy</option>
+<option value="Horror">Horror</option>
+<option value="Thriller">Thriller</option>
+</select><br>
+<label><input type="checkbox" id="featuredCheckbox"> Featured</label><br>
+<button onclick="addMovie()">Add Movie</button><br><br>
+
+<input type="file" id="movieFile" accept="video/*" multiple>
+<label>Check "Featured" to include in carousel</label><br>
+<button onclick="addMovieFiles()">Upload Local Movies</button>
+</div>
+
+<div class="featured-carousel" id="featuredCarousel">
+<button class="carousel-btn prev-btn" onclick="prevSlide()">&#10094;</button>
+<button class="carousel-btn next-btn" onclick="nextSlide()">&#10095;</button>
+</div>
+
+<div id="categoriesContainer"></div>
+
+<div id="movieModal" class="modal">
+  <div class="modal-content">
+    <button class="close-btn" onclick="closeModal()">&times;</button>
+    <video id="modalVideo" controls autoplay></video>
+    <div class="modal-details">
+      <h2 id="modalTitle"></h2>
+      <a id="modalDownload" href="#" class="download-btn" target="_blank">Download</a>
+    </div>
+  </div>
+</div>
+
+<script>
+const OWNER_PASSWORD = "admin123";
+let movies = JSON.parse(localStorage.getItem('movies')) || [];
+
+// Save movies to localStorage
+function saveMovies(){
+    localStorage.setItem('movies', JSON.stringify(movies));
+}
+
+// Login check
+function checkLogin(){
+    const pass=document.getElementById('ownerPassword').value;
+    if(pass===OWNER_PASSWORD){
+        alert("Access Granted! Owner controls enabled.");
+        document.getElementById('uploadForm').style.display='block';
+        document.getElementById('loginForm').style.display='none';
+    } else { alert("Wrong password!"); }
+}
+
+// Featured carousel
+let featuredIndex=0;
+function initFeatured(){
+    const carousel=document.getElementById('featuredCarousel');
+    carousel.innerHTML=`<button class="carousel-btn prev-btn" onclick="prevSlide()">&#10094;</button>
+                        <button class="carousel-btn next-btn" onclick="nextSlide()">&#10095;</button>`;
+    const featured=movies.filter(m=>m.featured);
+    featured.forEach((m,i)=>{
+        const div=document.createElement('div'); div.className='featured-slide'+(i===0?' active':'');
+        div.innerHTML=`<img src="${m.img}" alt="${m.title}"><div style="position:absolute;bottom:20%;left:5%;color:#fff;background:rgba(0,0,0,.5);padding:20px;border-radius:8px;">
+                        <h2>${m.title}</h2></div>`;
+        carousel.appendChild(div);
+    });
+    setInterval(nextSlide,8000);
+}
+function nextSlide(){ const slides=document.querySelectorAll('.featured-slide'); if(!slides.length) return; slides[featuredIndex].classList.remove('active'); featuredIndex=(featuredIndex+1)%slides.length; slides[featuredIndex].classList.add('active'); }
+function prevSlide(){ const slides=document.querySelectorAll('.featured-slide'); if(!slides.length) return; slides[featuredIndex].classList.remove('active'); featuredIndex=(featuredIndex-1+slides.length)%slides.length; slides[featuredIndex].classList.add('active'); }
+
+// Display movies
+function displayCategories(){
+    const container=document.getElementById('categoriesContainer');
+    container.innerHTML='';
+    const searchTerm=document.getElementById('searchInput').value.toLowerCase();
+    const cats=[...new Set(movies.map(m=>m.category))];
+    cats.forEach(cat=>{
+        const catDiv=document.createElement('div'); catDiv.className='category';
+        catDiv.innerHTML=`<h2>${cat}</h2><div class="slider" id="slider-${cat}"></div>`;
+        container.appendChild(catDiv);
+        const slider=document.getElementById('slider-'+cat);
+        movies.filter(m=>m.category===cat && m.title.toLowerCase().includes(searchTerm))
+        .forEach(movie=>{
+            const card=document.createElement('div'); card.className='movie-card';
+            card.innerHTML=`${document.getElementById('uploadForm').style.display==='block' ? `<input type="checkbox" ${movie.featured?'checked':''} onchange="movie.featured=this.checked;saveMovies();initFeatured()">
+            <button onclick="editMovie('${movie.title}')">Edit</button>
+            <button onclick="deleteMovie('${movie.title}')">Delete</button>`:''}
+            <img src="${movie.img}" class="poster">
+            <video src="${movie.file}" muted loop class="previewVideo"></video>
+            <h3>${movie.title}</h3>
+            <a href="${movie.file}" target="_blank">Download</a>`;
+            const video=card.querySelector('.previewVideo');
+            card.addEventListener('mouseenter',()=>{video.style.opacity=1; video.currentTime=0; video.play();});
+            card.addEventListener('mouseleave',()=>{video.pause(); video.currentTime=0; video.style.opacity=0;});
+            card.querySelector('a').addEventListener('click',(e)=>{e.stopPropagation();});
+            card.addEventListener('click',()=>openModal(movie));
+            slider.appendChild(card);
+        });
+    });
+}
+
+// Add movie via URL
+function addMovie(){
+    const title=document.getElementById('movieTitle').value.trim();
+    const file=document.getElementById('movieURL').value.trim();
+    const img=document.getElementById('moviePoster').value.trim() || 'https://via.placeholder.com/200x300?text=Movie';
+    const category=document.getElementById('movieCategory').value;
+    const featured=document.getElementById('featuredCheckbox').checked;
+    if(!title || !file){alert('Title & URL required'); return;}
+    movies.push({title,file,img,category,featured});
+    saveMovies();
+    displayCategories(); initFeatured();
+}
+
+// Upload local movies
+function addMovieFiles(){
+    const files=document.getElementById('movieFile').files;
+    if(!files.length){alert('Select at least one file'); return;}
+    const featured=document.getElementById('featuredCheckbox').checked;
+    const category=document.getElementById('movieCategory').value;
+    Array.from(files).forEach(file=>{
+        const url=URL.createObjectURL(file);
+        const title=file.name.replace(/\.[^/.]+$/,'');
+        const img='https://via.placeholder.com/200x300?text=Movie';
+        movies.push({title,file:url,img,category,featured});
+    });
+    saveMovies();
+    displayCategories(); initFeatured();
+}
+
+// Edit / Delete
+function editMovie(title){
+    const movie=movies.find(m=>m.title===title);
+    if(!movie) return;
+    const newTitle=prompt('Edit title:',movie.title) || movie.title;
+    const newFile=prompt('Edit URL:',movie.file) || movie.file;
+    const newImg=prompt('Edit poster URL:',movie.img) || movie.img;
+    movie.title=newTitle; movie.file=newFile; movie.img=newImg;
+    saveMovies();
+    displayCategories(); initFeatured();
+}
+function deleteMovie(title){
+    if(!confirm('Delete this movie?')) return;
+    movies=movies.filter(m=>m.title!==title);
+    saveMovies();
+    displayCategories(); initFeatured();
+}
+
+// Modal
+function openModal(movie){
+    const modal=document.getElementById('movieModal');
+    document.getElementById('modalVideo').src=movie.file;
+    document.getElementById('modalTitle').innerText=movie.title;
+    document.getElementById('modalDownload').href=movie.file;
+    modal.style.display='flex';
+}
+function closeModal(){
+    const modal=document.getElementById('movieModal');
+    modal.style.display='none';
+    document.getElementById('modalVideo').pause();
+    document.getElementById('modalVideo').src='';
+}
+
+// Poster preview
+function updatePosterPreview(){
+    const val=document.getElementById('moviePoster').value.trim();
+    document.getElementById('posterPreview').src=val || 'https://via.placeholder.com/200x300?text=Preview';
+}
+
+// Initialize
+displayCategories();
+initFeatured();
+</script>
+</body>
+</html>
